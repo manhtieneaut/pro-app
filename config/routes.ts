@@ -61,6 +61,12 @@ export default [
     component: './Dashboard',
   },
   {
+    path: '/users',
+    name: 'Danh sách người dùng',
+    component: './UserList',
+  },
+
+  {
     path: '*',
     layout: false,
     component: './404',
