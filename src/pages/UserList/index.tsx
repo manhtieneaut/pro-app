@@ -1,48 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { PageContainer } from '@ant-design/pro-layout';
-import { Table, Tag } from 'antd';
-const UserList: React.FC = () => {
-  const [data, setData] = useState([]);
+import { Table, Button, Modal, Form, Input } from 'antd';
 
-  const [loading, setLoading] = useState(true);
+const UserList: React.FC = () => {
+  const [data, setData] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const [loading, setLoading] = useState(true);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
   useEffect(() => {
     fetch('https://jsonplaceholder.typicode.com/users')
       .then((res) => res.json())
       .then((data) => {
         setData(data);
-        setLoading(false);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        // setLoading(false);
       });
   }, []);
-  const columns = [
-    {
-      title: 'Họ và tên',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-    },
-    {
-      title: 'Website',
-      dataIndex: 'website',
-      key: 'website',
-      render: (text: string) => (
-        <a href={`http://${text}`} target="_blank" rel="noopener noreferrer">
-          {text}
-        </a>
-      ),
-    },
-    {
-      title: 'Trạng thái',
-      key: 'status',
-      render: () => <Tag color="green">Active</Tag>,
-    },
-  ];
+  const handleAddUser = () => {
+    setIsModalVisible(true);
+  };
+  const handleOk = () => {
+    form.validateFields().then((values) => {
+      setData([...data, { id: data.length + 1, ...values }]);
+      setIsModalVisible(false);
+      form.resetFields();
+    });
+  };
   return (
     <PageContainer>
-      <Table columns={columns} dataSource={data} loading={loading} rowKey="id" />
+      <Button
+        type="primary"
+        onClick={handleAddUser}
+        style={{
+          marginBottom: 16,
+        }}
+      >
+        Thêm người dùng
+      </Button>
+      <Table columns={[{ title: 'Tên', dataIndex: 'name' }]} dataSource={data} rowKey="id" />
+      <Modal
+        title="Thêm người dùng"
+        open={isModalVisible}
+        onOk={handleOk} // thay visible bằng open
+        onCancel={() => setIsModalVisible(false)}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label="Tên"
+            rules={[
+              {
+                required: true,
+              },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
     </PageContainer>
   );
 };
