@@ -121,7 +121,11 @@ export default defineConfig({
    * @description 它基于 axios 和 ahooks 的 useRequest 提供了一套统一的网络请求和错误处理方案。
    * @doc https://umijs.org/docs/max/request
    */
-  request: {},
+  // plugins: ['@umijs/plugin-request'],
+  request: {
+    // Cấu hình chung cho request
+    dataField: '',
+  },
   /**
    * @name 权限插件
    * @description 基于 initialState 的权限插件，必须先打开 initialState
