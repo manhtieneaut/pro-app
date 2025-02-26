@@ -169,4 +169,8 @@ export default defineConfig({
   mako: {},
   esbuildMinifyIIFE: true,
   requestRecord: {},
+
+  dva: {
+    immer: {}, // Chỉ giữ lại immer
+  },
 });

@@ -1,57 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { connect } from 'dva';
+import type { Dispatch } from 'redux';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
-import { Button, message, Modal } from 'antd';
-import { getUsers, deleteUser } from '@/services/user';
-const UserList: React.FC = () => {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+import { User } from '@/models/user';
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const response = await getUsers();
-      setData(response);
-    } catch (error) {
-      message.error('Lỗi tải dữ liệu');
-    }
-    setLoading(false);
-  };
+interface UserListProps {
+  userList: User[]; // Định nghĩa kiểu dữ liệu rõ ràng
+  dispatch: Dispatch;
+}
 
+const UserList: React.FC<UserListProps> = ({ userList, dispatch }) => {
   useEffect(() => {
-    loadUsers();
-  }, []);
+    dispatch({ type: 'user/fetchUsers' });
+  }, [dispatch]);
 
-  const handleDelete = async (id: string) => {
-    Modal.confirm({
-      title: 'Bạn có chắc chắn muốn xóa?',
-      onOk: async () => {
-        await deleteUser(id);
-        message.success('Xóa thành công!');
-        loadUsers();
-      },
-    });
-  };
   return (
     <PageContainer>
-      <ProTable
+      <ProTable<User>
         columns={[
-          { title: 'ID', dataIndex: 'id' },
           { title: 'Tên', dataIndex: 'name' },
           { title: 'Email', dataIndex: 'email' },
-          {
-            title: 'Thao tác',
-            render: (_, record) => (
-              <Button type="link" danger onClick={() => handleDelete(record.id)}>
-                Xóa
-              </Button>
-            ),
-          },
         ]}
-        dataSource={data}
-        loading={loading}
+        dataSource={userList}
         rowKey="id"
       />
     </PageContainer>
   );
 };
-export default UserList;
+
+export default connect(({ user }: { user: { list: User[] } }) => ({
+  userList: user.list,
+}))(UserList);
