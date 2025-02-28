@@ -1,4 +1,4 @@
-﻿import component from "@/locales/bn-BD/component";
+﻿import component from '@/locales/bn-BD/component';
 
 /**
  * @name umi 的路由配置
@@ -67,6 +67,11 @@ export default [
     name: 'Danh sách người dùng',
     component: './UserList',
     wrappers: ['@/wrappers/auth'],
+  },
+  {
+    path: '/posts',
+    name: 'Danh sách bài viết',
+    component: './Post',
   },
   {
     path: '/login',
