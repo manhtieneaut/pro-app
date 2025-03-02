@@ -1,106 +1,125 @@
-import React, { useEffect, useState } from 'react';
-import { connect } from 'dva';
-import type { Dispatch } from 'redux';
-import { PageContainer, ProTable, ModalForm, ProFormText } from '@ant-design/pro-components';
-import { Button, message, Popconfirm } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { User } from '@/models/user';
+import React, { useEffect, useState } from "react";
+import { ProTable, ProColumns, ActionType } from "@ant-design/pro-components";
+import { Button, message, Modal, Form, Input } from "antd";
+import { useModel } from "@umijs/max";
 
-interface UserListProps {
-  userList: User[];
-  dispatch: Dispatch;
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
 }
 
-const UserList: React.FC<UserListProps> = ({ userList, dispatch }) => {
+const UserTable: React.FC = () => {
+  const { list, fetchUserList, createUser, modifyUser, removeUser } = useModel("user");
   const [modalVisible, setModalVisible] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [form] = Form.useForm();
+  const actionRef = React.useRef<ActionType>();
 
   useEffect(() => {
-    dispatch({ type: 'user/fetchUsers' });
-  }, [dispatch]);
+    fetchUserList();
+  }, []);
 
-  // Xử lý thêm/sửa người dùng
-  const handleSubmit = async (values: Partial<User>) => {
-    if (currentUser) {
-      // Sửa
-      await dispatch({ type: 'user/updateUser', payload: { ...currentUser, ...values } });
-      message.success('Cập nhật người dùng thành công!');
-    } else {
-      // Thêm
-      await dispatch({ type: 'user/addUser', payload: values });
-      message.success('Thêm người dùng thành công!');
+  const handleAddOrEditUser = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingUser) {
+        await modifyUser(editingUser.id, values);
+        message.success("User updated successfully!");
+      } else {
+        await createUser(values);
+        message.success("User added successfully!");
+      }
+      setModalVisible(false);
+      form.resetFields();
+      setEditingUser(null);
+      actionRef.current?.reload();
+    } catch (error) {
+      console.error(error);
     }
-    setModalVisible(false);
-    setCurrentUser(null);
   };
 
-  // Xử lý xóa người dùng
   const handleDeleteUser = async (id: string) => {
-    await dispatch({ type: 'user/deleteUser', payload: id });
-    message.success('Xóa người dùng thành công!');
+    Modal.confirm({
+      title: "Are you sure to delete this user?",
+      onOk: async () => {
+        await removeUser(id);
+        message.success("User deleted successfully!");
+        actionRef.current?.reload();
+      },
+    });
   };
+
+  const columns: ProColumns<User>[] = [
+    { title: "ID", dataIndex: "id", key: "id" },
+    { title: "Name", dataIndex: "name", key: "name" },
+    { title: "Email", dataIndex: "email", key: "email" },
+    { title: "Phone", dataIndex: "phone", key: "phone" },
+    { title: "Address", dataIndex: "address", key: "address" },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <>
+          <Button type="link" onClick={() => {
+            setEditingUser(record);
+            form.setFieldsValue(record);
+            setModalVisible(true);
+          }}>
+            Edit
+          </Button>
+          <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
+            Delete
+          </Button>
+        </>
+      ),
+    },
+  ];
 
   return (
-    <PageContainer>
+    <>
       <ProTable<User>
-        columns={[
-          { title: 'Tên', dataIndex: 'name' },
-          { title: 'Email', dataIndex: 'email' },
-          {
-            title: 'Hành động',
-            valueType: 'option',
-            render: (_, record) => [
-              <Button
-                key="edit"
-                onClick={() => {
-                  setCurrentUser(record);
-                  setModalVisible(true);
-                }}
-              >
-                Sửa
-              </Button>,
-              <Popconfirm
-                key="delete"
-                title="Bạn có chắc muốn xóa?"
-                onConfirm={() => handleDeleteUser(String(record.id))}
-              >
-                <Button danger>Xóa</Button>
-              </Popconfirm>,
-            ],
-          },
-        ]}
-        dataSource={userList}
+        columns={columns}
+        dataSource={list}
         rowKey="id"
+        actionRef={actionRef}
+        search={{ filterType: "light" }}
+        pagination={{ pageSize: 5 }}
+        options={{ reload: true, setting: true }}
         toolBarRender={() => [
-          <Button
-            key="add"
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setCurrentUser(null);
-              setModalVisible(true);
-            }}
-          >
-            Thêm người dùng
-          </Button>,
+          <Button type="primary" onClick={() => setModalVisible(true)}>Add User</Button>,
         ]}
       />
 
-      {/* Modal Thêm/Sửa Người Dùng */}
-      <ModalForm<User>
-        title={currentUser ? 'Sửa Người Dùng' : 'Thêm Người Dùng'}
+      <Modal
+        title={editingUser ? "Edit User" : "Add User"}
         open={modalVisible}
-        onFinish={handleSubmit}
-        modalProps={{ onCancel: () => setModalVisible(false) }}
-        initialValues={currentUser || {}}
+        onOk={handleAddOrEditUser}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+          setEditingUser(null);
+        }}
       >
-        <ProFormText name="name" label="Tên" rules={[{ required: true }]} />
-        <ProFormText name="email" label="Email" rules={[{ required: true, type: 'email' }]} />
-      </ModalForm>
-    </PageContainer>
+        <Form form={form} layout="vertical">
+          <Form.Item name="name" label="Name" rules={[{ required: true, message: "Please enter name" }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="email" label="Email" rules={[{ required: true, message: "Please enter email" }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="phone" label="Phone" rules={[{ required: true, message: "Please enter phone" }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="address" label="Address" rules={[{ required: true, message: "Please enter address" }]}>
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 };
 
-export default connect(({ user }: { user: { list: User[] } }) => ({
-  userList: user.list,
-}))(UserList);
+export default UserTable;

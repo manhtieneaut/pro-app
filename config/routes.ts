@@ -69,15 +69,10 @@ export default [
     wrappers: ['@/wrappers/auth'],
   },
   {
-    path: '/posts',
-    name: 'Danh sách bài viết',
-    component: './Post',
-  },
-  {
     path: '/login',
+    name: 'login',
     component: './Login',
   },
-
   {
     path: '*',
     layout: false,
