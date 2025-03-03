@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "@umijs/max";
 import { ProTable, ProColumns, ActionType } from "@ant-design/pro-components";
 import { Button, message, Modal, Form, Input } from "antd";
-import { useModel } from "@umijs/max";
+import { debounce } from "lodash"; // Debounce tìm kiếm
+import { useCallback } from "react";
 
 interface User {
   id: string;
@@ -11,49 +13,65 @@ interface User {
   address: string;
 }
 
-const UserTable: React.FC = () => {
-  const { list, fetchUserList, createUser, modifyUser, removeUser } = useModel("user");
+const UserList: React.FC = () => {
+  const dispatch = useDispatch();
+  const { list, loading } = useSelector((state: any) => state.user);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form] = Form.useForm();
-  const actionRef = React.useRef<ActionType>();
+  const actionRef = useRef<ActionType>();
 
-  useEffect(() => {
-    fetchUserList();
+   // Chỉ gọi API khi trang được mở
+   useEffect(() => {
+    if (list.length === 0) {
+      dispatch({ type: "user/fetchUserList" });
+    }
   }, []);
+
+
+  const openModal = (user?: User) => {
+    if (user) {
+      setEditingUser(user);
+      form.setFieldsValue(user); // Gán dữ liệu cũ vào form
+    } else {
+      setEditingUser(null);
+      form.resetFields(); // Xóa dữ liệu form khi thêm mới
+    }
+    setModalVisible(true);
+  };
 
   const handleAddOrEditUser = async () => {
     try {
       const values = await form.validateFields();
       if (editingUser) {
-        await modifyUser(editingUser.id, values);
+        await dispatch({ type: "user/modifyUser", payload: { id: editingUser.id, data: values } });
         message.success("User updated successfully!");
       } else {
-        await createUser(values);
+        await dispatch({ type: "user/createUser", payload: values });
         message.success("User added successfully!");
       }
       setModalVisible(false);
       form.resetFields();
       setEditingUser(null);
-      actionRef.current?.reload();
+      dispatch({ type: "user/fetchUserList" });
     } catch (error) {
       console.error(error);
     }
   };
 
-  const handleDeleteUser = async (id: string) => {
+  const handleDeleteUser = (id: string) => {
     Modal.confirm({
       title: "Are you sure to delete this user?",
       onOk: async () => {
-        await removeUser(id);
+        await dispatch({ type: "user/removeUser", payload: id });
         message.success("User deleted successfully!");
-        actionRef.current?.reload();
+        dispatch({ type: "user/fetchUserList" });
       },
     });
   };
 
   const columns: ProColumns<User>[] = [
-    { title: "ID", dataIndex: "id", key: "id" },
     { title: "Name", dataIndex: "name", key: "name" },
     { title: "Email", dataIndex: "email", key: "email" },
     { title: "Phone", dataIndex: "phone", key: "phone" },
@@ -63,20 +81,19 @@ const UserTable: React.FC = () => {
       key: "actions",
       render: (_, record) => (
         <>
-          <Button type="link" onClick={() => {
-            setEditingUser(record);
-            form.setFieldsValue(record);
-            setModalVisible(true);
-          }}>
-            Edit
-          </Button>
-          <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
-            Delete
-          </Button>
+          <Button type="link" onClick={() => openModal(record)}>Edit</Button>
+          <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>Delete</Button>
         </>
       ),
     },
   ];
+// Hàm tìm kiếm có debounce
+const handleSearch = useCallback(
+  debounce((params: any) => {
+    dispatch({ type: "user/searchUser", payload: params });
+  }, 300), // Chờ 300ms trước khi gửi request
+  [dispatch]
+);
 
   return (
     <>
@@ -88,9 +105,9 @@ const UserTable: React.FC = () => {
         search={{ filterType: "light" }}
         pagination={{ pageSize: 5 }}
         options={{ reload: true, setting: true }}
-        toolBarRender={() => [
-          <Button type="primary" onClick={() => setModalVisible(true)}>Add User</Button>,
-        ]}
+        loading={loading}
+        toolBarRender={() => [<Button type="primary" onClick={() => openModal()}>Add User</Button>]}
+        onSubmit={handleSearch}
       />
 
       <Modal
@@ -122,4 +139,4 @@ const UserTable: React.FC = () => {
   );
 };
 
-export default UserTable;
+export default UserList;

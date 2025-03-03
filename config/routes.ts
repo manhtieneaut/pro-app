@@ -1,4 +1,5 @@
 ﻿import component from '@/locales/bn-BD/component';
+import route from 'mock/route';
 
 /**
  * @name umi 的路由配置
@@ -61,14 +62,28 @@ export default [
     path: '/dashboard',
     name: 'Dashboard',
     component: './Dashboard',
+    access: "canAdmin", // chi admin moi co quyen vao dashboard
+
   },
   {
     path: '/users',
     name: 'Danh sách người dùng',
     component: './UserList',
     wrappers: ['@/wrappers/auth'],
+    routes: [
+   
+    ]
   },
+  
   {
+    path: "/account-report",
+    name: "Báo Cáo Tài Khoản",
+    component: "./Report",
+    access: "canAdmin", // Nếu chỉ admin có quyền tải báo cáo
+  },
+  
+  {
+    layout: false,
     path: '/login',
     name: 'login',
     component: './Login',

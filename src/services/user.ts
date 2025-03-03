@@ -1,5 +1,7 @@
 import request from "umi-request";
 
+
+
 const API_URL = "https://67c3f2fe89e47db83dd2d735.mockapi.io/api/v1/users";
 
 /**
@@ -7,7 +9,7 @@ const API_URL = "https://67c3f2fe89e47db83dd2d735.mockapi.io/api/v1/users";
  */
 export const fetchUsers = async () => {
   try {
-    const data = await request(API_URL, { method: "GET" });
+    const data = await request(API_URL, { method: "GET", ttl: 60000 });
     return { data, success: true };
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -72,3 +74,18 @@ export const deleteUser = async (id: string) => {
     return { success: false };
   }
 };
+
+/**
+ * Tìm kiếm người dùng theo trường cụ thể
+ */
+export const searchUsers = async (query: { [key: string]: string }) => {
+  try {
+    const queryString = new URLSearchParams(query).toString();
+    const data = await request(`${API_URL}?${queryString}`, { method: "GET" });
+    return { data, success: true };
+  } catch (error) {
+    console.error("Error searching users:", error);
+    return { data: [], success: false };
+  }
+};
+

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { fetchUsers, getUserById, addUser, updateUser, deleteUser } from "@/services/user";
+import { Effect, Reducer } from '@umijs/max';
+import { fetchUsers, getUserById, addUser, updateUser, deleteUser, searchUsers } from '@/services/user';
 
 export interface User {
   id: string;
@@ -9,46 +9,105 @@ export interface User {
   address: string;
 }
 
-export default function useUserModel() {
-  const [list, setList] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+export interface UserModelState {
+  list: User[];
+  currentUser: User | null;
+  loading: boolean;
+}
 
-  const fetchUserList = async () => {
-    const response = await fetchUsers();
-    if (response.success) setList(response.data);
+export interface UserModelType {
+  namespace: 'user';
+  state: UserModelState;
+  effects: {
+    fetchUserList: Effect;
+    fetchUserDetail: Effect;
+    createUser: Effect;
+    modifyUser: Effect;
+    removeUser: Effect;
+    searchUser: Effect;
   };
-
-  const fetchUserDetail = async (id: string) => {
-    const response = await getUserById(id);
-    if (response.success) setCurrentUser(response.data);
-  };
-
-  const createUser = async (userData: Omit<User, "id">) => {
-    const response = await addUser(userData);
-    if (response.success) setList((prev) => [...prev, response.data]);
-  };
-
-  const modifyUser = async (id: string, userData: Partial<User>) => {
-    const response = await updateUser(id, userData);
-    if (response.success) {
-      setList((prev) => prev.map((user) => (user.id === id ? { ...user, ...response.data } : user)));
-    }
-  };
-
-  const removeUser = async (id: string) => {
-    const response = await deleteUser(id);
-    if (response.success) {
-      setList((prev) => prev.filter((user) => user.id !== id));
-    }
-  };
-
-  return {
-    list,
-    currentUser,
-    fetchUserList,
-    fetchUserDetail,
-    createUser,
-    modifyUser,
-    removeUser,
+  reducers: {
+    saveUsers: Reducer<UserModelState>;
+    saveCurrentUser: Reducer<UserModelState>;
+    setLoading: Reducer<UserModelState>;
   };
 }
+
+const UserModel: UserModelType = {
+  namespace: 'user',
+  state: {
+    list: [],
+    currentUser: null,
+    loading: false,
+  },
+
+  effects: {
+    *fetchUserList(_, { call, put }): Generator<any, void, any> {
+      yield put({ type: 'setLoading', payload: true });
+      const response = yield call(fetchUsers);
+      if (response.success) {
+        yield put({ type: 'saveUsers', payload: response.data });
+      }
+      yield put({ type: 'setLoading', payload: false });
+    },
+
+    *fetchUserDetail({ payload }, { call, put }): Generator<any, void, any> {
+      yield put({ type: 'setLoading', payload: true });
+      const response = yield call(getUserById, payload);
+      if (response.success) {
+        yield put({ type: 'saveCurrentUser', payload: response.data });
+      }
+      yield put({ type: 'setLoading', payload: false });
+    },
+
+    *createUser({ payload }, { call, put }): Generator<any, void, any> {
+      yield put({ type: 'setLoading', payload: true });
+      const response = yield call(addUser, payload);
+      if (response.success) {
+        yield put({ type: 'fetchUserList' });
+      }
+      yield put({ type: 'setLoading', payload: false });
+    },
+
+    *modifyUser({ payload }, { call, put }): Generator<any, void, any> {
+      yield put({ type: 'setLoading', payload: true });
+      const response = yield call(updateUser, payload.id, payload.data);
+      if (response.success) {
+        yield put({ type: 'fetchUserList' });
+      }
+      yield put({ type: 'setLoading', payload: false });
+    },
+
+    *removeUser({ payload }, { call, put }): Generator<any, void, any> {
+      yield put({ type: 'setLoading', payload: true });
+      const response = yield call(deleteUser, payload);
+      if (response.success) {
+        yield put({ type: 'fetchUserList' });
+      }
+      yield put({ type: 'setLoading', payload: false });
+    },
+
+    *searchUser({ payload }, { call, put }): Generator<any, void, any> {
+      yield put({ type: 'setLoading', payload: true });
+      const response = yield call(searchUsers, payload);
+      if (response.success) {
+        yield put({ type: 'saveUsers', payload: response.data });
+      }
+      yield put({ type: 'setLoading', payload: false });
+    },
+  },
+
+  reducers: {
+    saveUsers(state, { payload }) {
+      return { ...state, list: payload };
+    },
+    saveCurrentUser(state, { payload }) {
+      return { ...state, currentUser: payload };
+    },
+    setLoading(state, { payload }) {
+      return { ...state, loading: payload };
+    },
+  },
+};
+
+export default UserModel;

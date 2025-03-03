@@ -42,6 +42,7 @@
     "@ant-design/charts": "^2.2.6",
     "@ant-design/icons": "^4.8.3",
     "@ant-design/pro-components": "^2.7.19",
+    "@umijs/plugin-dva": "^0.13.2",
     "@umijs/plugin-request": "^2.9.0",
     "antd": "^5.21.2",
     "antd-style": "^3.7.0",
