@@ -62,26 +62,16 @@ export default [
     path: '/dashboard',
     name: 'Dashboard',
     component: './Dashboard',
-    access: "canAdmin", // chi admin moi co quyen vao dashboard
-
+    access: 'canAdmin', // chi admin moi co quyen vao dashboard
   },
   {
     path: '/users',
     name: 'Danh sách người dùng',
     component: './UserList',
     wrappers: ['@/wrappers/auth'],
-    routes: [
-   
-    ]
+    routes: [],
   },
-  
-  {
-    path: "/account-report",
-    name: "Báo Cáo Tài Khoản",
-    component: "./Report",
-    access: "canAdmin", // Nếu chỉ admin có quyền tải báo cáo
-  },
-  
+
   {
     layout: false,
     path: '/login',

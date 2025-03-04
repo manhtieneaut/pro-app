@@ -1,91 +1,46 @@
-import request from "umi-request";
+import request from 'umi-request';
 
+const API_URL = 'https://67c3f2fe89e47db83dd2d735.mockapi.io/api/v1/users';
 
-
-const API_URL = "https://67c3f2fe89e47db83dd2d735.mockapi.io/api/v1/users";
-
-/**
- * Lấy danh sách người dùng
- */
-export const fetchUsers = async () => {
-  try {
-    const data = await request(API_URL, { method: "GET", ttl: 60000 });
-    return { data, success: true };
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    return { data: [], success: false };
-  }
+const handleError = (error: any, action: string) => {
+  console.error(`Error ${action}:`, error);
+  return { data: null, success: false };
 };
 
-/**
- * Lấy thông tin người dùng theo ID
- */
-export const getUserById = async (id: string) => {
-  try {
-    const data = await request(`${API_URL}/${id}`, { method: "GET" });
-    return { data, success: true };
-  } catch (error) {
-    console.error(`Error fetching user ${id}:`, error);
-    return { data: null, success: false };
-  }
-};
+export const fetchUsers = async () =>
+  request
+    .get(API_URL)
+    .then((data) => ({ data, success: true }))
+    .catch((error) => handleError(error, 'fetching users'));
 
-/**
- * Thêm người dùng mới
- */
-export const addUser = async (userData: { name: string; email: string; phone: string; address: string }) => {
-  try {
-    const data = await request(API_URL, {
-      method: "POST",
-      data: userData,
-    });
-    return { data, success: true };
-  } catch (error) {
-    console.error("Error adding user:", error);
-    return { data: null, success: false };
-  }
-};
+export const getUserById = async (id: string) =>
+  request
+    .get(`${API_URL}/${id}`)
+    .then((data) => ({ data, success: true }))
+    .catch((error) => handleError(error, `fetching user ${id}`));
 
-/**
- * Cập nhật thông tin người dùng
- */
-export const updateUser = async (id: string, userData: Partial<{ name: string; email: string; phone: string; address: string }>) => {
-  try {
-    const data = await request(`${API_URL}/${id}`, {
-      method: "PUT",
-      data: userData,
-    });
-    return { data, success: true };
-  } catch (error) {
-    console.error(`Error updating user ${id}:`, error);
-    return { data: null, success: false };
-  }
-};
+export const addUser = async (userData: object) =>
+  request
+    .post(API_URL, { data: userData })
+    .then((data) => ({ data, success: true }))
+    .catch((error) => handleError(error, 'adding user'));
 
-/**
- * Xóa người dùng
- */
-export const deleteUser = async (id: string) => {
-  try {
-    await request(`${API_URL}/${id}`, { method: "DELETE" });
-    return { success: true };
-  } catch (error) {
-    console.error(`Error deleting user ${id}:`, error);
-    return { success: false };
-  }
-};
+export const updateUser = async (id: string, userData: object) =>
+  request
+    .put(`${API_URL}/${id}`, { data: userData })
+    .then((data) => ({ data, success: true }))
+    .catch((error) => handleError(error, `updating user ${id}`));
 
-/**
- * Tìm kiếm người dùng theo trường cụ thể
- */
-export const searchUsers = async (query: { [key: string]: string }) => {
-  try {
-    const queryString = new URLSearchParams(query).toString();
-    const data = await request(`${API_URL}?${queryString}`, { method: "GET" });
-    return { data, success: true };
-  } catch (error) {
-    console.error("Error searching users:", error);
-    return { data: [], success: false };
-  }
-};
+export const deleteUser = async (id: string) =>
+  request
+    .delete(`${API_URL}/${id}`)
+    .then(() => ({ success: true }))
+    .catch((error) => handleError(error, `deleting user ${id}`));
 
+export const searchUsers = async (query: Record<string, string>) => {
+  const queryString = new URLSearchParams(query).toString();
+  return request
+    .get(`${API_URL}?${queryString}`)
+    .then((data) => ({ data, success: true }))
+    .catch((error) => handleError(error, 'searching users'));
+};
