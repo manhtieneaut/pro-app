@@ -105,7 +105,9 @@ const UserModel: UserModelType = {
       yield put({ type: 'setLoading', payload: true });
       const response = yield call(searchUsers, payload); // Gọi API tìm kiếm
       if (response.success) {
-        yield put({ type: 'saveUsers', payload: response.data }); // Cập nhật danh sách với kết quả tìm kiếm
+        yield put({ type: 'saveUsers', payload: response.data || [] }); // Cập nhật danh sách, đảm bảo rỗng nếu không có kết quả
+      } else {
+        yield put({ type: 'saveUsers', payload: [] }); // Nếu lỗi, cũng hiển thị rỗng
       }
       yield put({ type: 'setLoading', payload: false });
     },

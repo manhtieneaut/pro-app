@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from '@umijs/max';
 import { ProTable, ProColumns, ActionType } from '@ant-design/pro-components';
 import { Button, message, Modal, Form, Input } from 'antd';
 import { useCallback, useMemo } from 'react';
+import { useAccess } from '@umijs/max';
+import { debounce } from 'lodash';
 
 interface User {
   id: string;
@@ -15,11 +17,12 @@ interface User {
 const UserList: React.FC = () => {
   const dispatch = useDispatch();
   const { list, loading } = useSelector((state: any) => state.user);
-
+  const access = useAccess();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form] = Form.useForm();
   const actionRef = useRef<ActionType>();
+  const CACHE_KEY = 'users_cache';
 
   useEffect(() => {
     dispatch({ type: 'user/fetchUserList' });
@@ -56,29 +59,32 @@ const UserList: React.FC = () => {
     [dispatch],
   );
 
-  const columns: ProColumns<User>[] = useMemo(
-    () => [
-      { title: 'Name', dataIndex: 'name', key: 'name' },
-      { title: 'Email', dataIndex: 'email', key: 'email' },
-      { title: 'Phone', dataIndex: 'phone', key: 'phone' },
-      { title: 'Address', dataIndex: 'address', key: 'address' },
-      {
-        title: 'Actions',
-        key: 'actions',
-        render: (_, record) => (
-          <>
-            <Button type="link" onClick={() => openModal(record)}>
-              Edit
-            </Button>
-            <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
-              Delete
-            </Button>
-          </>
-        ),
-      },
-    ],
-    [], // ✅ Chỉ tạo lại khi component mount
-  );
+  const baseColumns: ProColumns<User>[] = [
+    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: 'Email', dataIndex: 'email', key: 'email' },
+    { title: 'Phone', dataIndex: 'phone', key: 'phone' },
+    { title: 'Address', dataIndex: 'address', key: 'address' },
+  ];
+
+  const actionColumn: ProColumns<User> = {
+    title: 'Actions',
+    key: 'actions',
+    search: false,
+    render: (_, record) => (
+      <>
+        <Button type="link" onClick={() => openModal(record)}>
+          Edit
+        </Button>
+        <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
+          Delete
+        </Button>
+      </>
+    ),
+  };
+
+  const columns = useMemo(() => {
+    return access.canAdmin ? [...baseColumns, actionColumn] : baseColumns;
+  }, [access.canAdmin]);
 
   const handleAddOrEditUser = useCallback(async () => {
     try {
@@ -119,6 +125,13 @@ const UserList: React.FC = () => {
     }
   }, [form, editingUser, dispatch]); // Chỉ tạo lại khi một trong các dependencies thay đổi
 
+  const reloadTable = debounce(() => {
+    sessionStorage.removeItem(CACHE_KEY);
+    dispatch({ type: 'user/fetchUserList' }); // Gọi lại API lấy danh sách user
+    actionRef.current?.reload(); // Làm mới bảng
+    console.log('Reload table');
+  }, 1000);
+
   return (
     <>
       <ProTable<User>
@@ -128,7 +141,10 @@ const UserList: React.FC = () => {
         actionRef={actionRef}
         search={{ filterType: 'light' }}
         pagination={{ pageSize: 5 }}
-        options={{ reload: true, setting: true }}
+        options={{
+          reload: () => reloadTable(), // ✅ Gọi hàm reloadTable khi nhấn reload
+          setting: true,
+        }}
         loading={loading}
         toolBarRender={() => [
           <Button key="addUser" type="primary" onClick={() => openModal()}>

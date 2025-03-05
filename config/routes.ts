@@ -69,7 +69,6 @@ export default [
     name: 'Danh sách người dùng',
     component: './UserList',
     wrappers: ['@/wrappers/auth'],
-    routes: [],
   },
 
   {
