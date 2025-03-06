@@ -5,6 +5,7 @@ import { Button, message, Modal, Form, Input } from 'antd';
 import { useCallback, useMemo } from 'react';
 import { useAccess } from '@umijs/max';
 import { debounce } from 'lodash';
+import isEqual from 'lodash/isEqual';
 
 interface User {
   id: string;
@@ -26,7 +27,7 @@ const UserList: React.FC = () => {
 
   useEffect(() => {
     dispatch({ type: 'user/fetchUserList' });
-  }, []); // ✅ Chỉ gọi API khi component mount
+  }, [dispatch]); // ✅ Thêm dispatch vào dependency để tránh lỗi eslint
 
   const openModal = (user?: User) => {
     if (user) {
@@ -53,49 +54,47 @@ const UserList: React.FC = () => {
   );
 
   const handleSearch = useCallback(
-    (params: any) => {
+    debounce((params: any) => {
       dispatch({ type: 'user/searchUser', payload: params });
-    },
+    }, 300), // ✅ Thêm debounce để tránh gọi API liên tục
     [dispatch],
   );
 
-  const baseColumns: ProColumns<User>[] = [
-    { title: 'Name', dataIndex: 'name', key: 'name' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
-    { title: 'Phone', dataIndex: 'phone', key: 'phone' },
-    { title: 'Address', dataIndex: 'address', key: 'address' },
-  ];
+  const columns = useMemo<ProColumns<User>[]>(() => {
+    const baseColumns: ProColumns<User>[] = [
+      { title: 'Name', dataIndex: 'name', key: 'name' },
+      { title: 'Email', dataIndex: 'email', key: 'email' },
+      { title: 'Phone', dataIndex: 'phone', key: 'phone' },
+      { title: 'Address', dataIndex: 'address', key: 'address' },
+    ];
 
-  const actionColumn: ProColumns<User> = {
-    title: 'Actions',
-    key: 'actions',
-    search: false,
-    render: (_, record) => (
-      <>
-        <Button type="link" onClick={() => openModal(record)}>
-          Edit
-        </Button>
-        <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
-          Delete
-        </Button>
-      </>
-    ),
-  };
+    if (access.canAdmin) {
+      baseColumns.push({
+        title: 'Actions',
+        key: 'actions',
+        search: false,
+        render: (_, record) => (
+          <>
+            <Button type="link" onClick={() => openModal(record)}>
+              Edit
+            </Button>
+            <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
+              Delete
+            </Button>
+          </>
+        ),
+      });
+    }
 
-  const columns = useMemo(() => {
-    return access.canAdmin ? [...baseColumns, actionColumn] : baseColumns;
-  }, [access.canAdmin]);
+    return baseColumns;
+  }, [access.canAdmin, handleDeleteUser]); // ✅ Chỉ re-create khi quyền thay đổi hoặc `handleDeleteUser` thay đổi
 
   const handleAddOrEditUser = useCallback(async () => {
     try {
       const values = await form.validateFields();
 
       if (editingUser) {
-        const isChanged = Object.keys(values).some(
-          (key) => values[key] !== editingUser[key as keyof User],
-        );
-
-        if (!isChanged) {
+        if (isEqual(values, editingUser)) {
           message.info('Không có thay đổi nào, không gửi request!');
           return;
         }
@@ -105,7 +104,6 @@ const UserList: React.FC = () => {
           payload: { id: editingUser.id, data: values },
         });
 
-        // Cập nhật state trực tiếp để tránh fetch lại danh sách
         dispatch({
           type: 'user/updateUserInState',
           payload: { id: editingUser.id, data: values },
@@ -123,14 +121,16 @@ const UserList: React.FC = () => {
     } catch (error) {
       console.error(error);
     }
-  }, [form, editingUser, dispatch]); // Chỉ tạo lại khi một trong các dependencies thay đổi
+  }, [form, editingUser, dispatch]);
 
-  const reloadTable = debounce(() => {
-    sessionStorage.removeItem(CACHE_KEY);
-    dispatch({ type: 'user/fetchUserList' }); // Gọi lại API lấy danh sách user
-    actionRef.current?.reload(); // Làm mới bảng
-    console.log('Reload table');
-  }, 1000);
+  const reloadTable = useCallback(
+    debounce(() => {
+      sessionStorage.removeItem(CACHE_KEY);
+      dispatch({ type: 'user/fetchUserList' });
+      actionRef.current?.reload();
+    }, 1000),
+    [dispatch],
+  );
 
   return (
     <>
