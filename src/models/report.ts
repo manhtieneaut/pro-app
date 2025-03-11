@@ -25,7 +25,7 @@ const ReportModel = {
 
   effects: {
     // Lấy báo cáo tài khoản cá nhân
-    *fetchPersonalAccountReport({ payload }, { call, put }) {
+    *fetchPersonalAccountReport({ payload }: { payload: any }, { call, put }: { call: Function, put: Function }) {
       yield put({ type: 'setLoading', payload: true });
       try {
         const response: Blob = yield call(getPersonalAccountReport, payload);
