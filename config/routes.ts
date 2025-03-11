@@ -46,6 +46,21 @@ export default [
         name: 'sub-page',
         component: './Admin',
       },
+      {
+        path: 'admin/report-account',
+        name: 'Báo cáo tài khoản',
+        component: './Report/Admin/Account',
+      },
+      {
+        path: 'admin/report-transaction',
+        name: 'Báo cáo giao dịch',
+        component: './Report/Admin/Transaction',
+      },
+      {
+        path: 'admin/report-loan',
+        name: 'Báo cáo khoản vay',
+        component: './Report/Admin/Loan',
+      },
     ],
   },
   {
@@ -62,7 +77,7 @@ export default [
     path: '/dashboard',
     name: 'Dashboard',
     component: './Dashboard',
-    access: 'canAdmin', // chi admin moi co quyen vao dashboard
+    access: 'canAdmin',
   },
   {
     path: '/users',
@@ -77,6 +92,17 @@ export default [
     name: 'login',
     component: './Login',
   },
+  {
+    path: '/report/account',
+    name: 'Account Report',
+    component: './Report/account',
+  },
+  {
+    path: '/report/loan',
+    name: 'Loan Report',
+    component: './Report/loan',
+  },
+  
   {
     path: '*',
     layout: false,

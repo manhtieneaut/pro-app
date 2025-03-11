@@ -117,4 +117,5 @@ export namespace API {
     /** example: admin */
     currentAuthority: string;
   };
+  
 }
