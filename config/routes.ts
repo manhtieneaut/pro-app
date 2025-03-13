@@ -97,11 +97,6 @@ export default [
     name: 'Account Report',
     component: './Report/account',
   },
-  {
-    path: '/report/loan',
-    name: 'Loan Report',
-    component: './Report/loan',
-  },
   
   {
     path: '*',

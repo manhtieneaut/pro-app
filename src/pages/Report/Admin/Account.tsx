@@ -1,24 +1,42 @@
-import React from "react";
-import { Card, Form, Input, Select, DatePicker, Button } from "antd";
-import { useDispatch } from "@umijs/max";
+import React, { useState } from "react";
+import { Card, Form, Input, Select, DatePicker, Button, message, Modal } from "antd";
+import { generateAccountsListReport } from "@/services/report";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const AdminAccountReportPage: React.FC = () => {
-  const dispatch = useDispatch();
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const handleSubmit = (values: any) => {
+  const handleSubmit = async (values: any) => {
     const { dateRange, ...rest } = values;
-    dispatch({
-      type: "adminAccountReport/fetch",
-      payload: {
-        ...rest,
-        startAt: dateRange ? dateRange[0].format("YYYY-MM-DD") : undefined,
-        endAt: dateRange ? dateRange[1].format("YYYY-MM-DD") : undefined,
-      },
-    });
+    const requestData = {
+      ...rest,
+      startAt: dateRange ? dateRange[0].format("YYYY-MM-DD") : undefined,
+      endAt: dateRange ? dateRange[1].format("YYYY-MM-DD") : undefined,
+    };
+
+    try {
+      setLoading(true);
+      const response = await generateAccountsListReport(requestData);
+
+      if (response instanceof Blob) {
+        if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+
+        const pdfObjectUrl = URL.createObjectURL(response);
+        setPdfUrl(pdfObjectUrl);
+        setIsModalVisible(true); // Mở modal hiển thị báo cáo
+      } else {
+        message.error("Lỗi khi tạo báo cáo.");
+      }
+    } catch (error) {
+      message.error("Lỗi khi tải báo cáo.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,11 +77,22 @@ const AdminAccountReportPage: React.FC = () => {
         </Form.Item>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit">
-            Lấy báo cáo
+          <Button type="primary" htmlType="submit" loading={loading}>
+            {loading ? "Đang tải..." : "Lấy báo cáo"}
           </Button>
         </Form.Item>
       </Form>
+
+      {/* Modal hiển thị PDF */}
+      <Modal
+        title="Xem trước báo cáo"
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        {pdfUrl && <iframe src={pdfUrl} width="100%" height="500px" style={{ border: "none" }} />}
+      </Modal>
     </Card>
   );
 };

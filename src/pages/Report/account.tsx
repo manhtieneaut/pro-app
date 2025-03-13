@@ -1,108 +1,136 @@
-import React, { useState } from "react";
-import { Card, Form, Select, DatePicker, Button } from "antd";
-import { useDispatch, useModel } from "@umijs/max";
+import React, { useState, useEffect } from "react";
+import { Card, Form, Select, DatePicker, Button, App, message, Space, Modal } from "antd";
 import dayjs from "dayjs";
+import { generatePersonalAccountReport } from "@/services/report";
+import { AccountType } from "@/services/types";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const AccountReportPage: React.FC = () => {
-  const dispatch = useDispatch();
-  const { initialState } = useModel("@@initialState");
-  // const customerId = initialState?.currentUser?.customerId || "1"; // Mặc định ID = 1 nếu không có
-  const customerId = "1"; // Mặc định ID = 1 nếu không có
-  const [form] = Form.useForm();
+  const accountsList = [{ account: "119016308300358", type: "Thanh toán" }];
+  const customerId = "ad9b4c9f-3b4c-4875-8b1c-5173f80a9cf6";
 
-  // Danh sách tài khoản của người dùng (kèm loại tài khoản)
-  const accountsList = [
-    { account: "123456789", type: "CURRENT" },
-    { account: "987654321", type: "SAVINGS" },
-  ];
-
-  // Lấy tài khoản mặc định là tài khoản đầu tiên
-  const [selectedAccount, setSelectedAccount] = useState(accountsList[0]);
-
-  const [selectedDateOption, setSelectedDateOption] = useState("month");
+  const [loading, setLoading] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(accountsList[0].account);
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().subtract(1, "month"),
     dayjs(),
   ]);
 
-  const handleDateChange = (value: string) => {
-    setSelectedDateOption(value);
-    if (value === "today") {
-      setDateRange([dayjs().startOf("day"), dayjs().endOf("day")]);
-    } else if (value === "week") {
-      setDateRange([dayjs().subtract(1, "week"), dayjs()]);
-    } else if (value === "month") {
-      setDateRange([dayjs().subtract(1, "month"), dayjs()]);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [pdfUrl]);
+
+  const handleQuickSelect = (rangeType: string) => {
+    let startDate = dayjs();
+    switch (rangeType) {
+      case "today":
+        startDate = dayjs();
+        break;
+      case "week":
+        startDate = dayjs().subtract(1, "week");
+        break;
+      case "month":
+        startDate = dayjs().subtract(1, "month");
+        break;
+      case "threeMonths":
+        startDate = dayjs().subtract(3, "month");
+        break;
+      default:
+        return;
     }
+    setDateRange([startDate, dayjs()]);
   };
 
-  const handleDatePickerChange = (dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null) => {
-    if (dates && dates[0] && dates[1]) {
-      setDateRange([dates[0], dates[1]]);
-      setSelectedDateOption(""); // Xóa chọn trong dropdown nếu người dùng tự chọn
+  const handleSubmit = async () => {
+    if (!dateRange[0] || !dateRange[1]) {
+      message.error("Vui lòng chọn khoảng thời gian hợp lệ.");
+      return;
     }
-  };
 
-  const handleAccountChange = (accountNumber: string) => {
-    const selected = accountsList.find((acc) => acc.account === accountNumber);
-    if (selected) {
-      setSelectedAccount(selected);
+    const requestData = {
+      customerId,
+      account: selectedAccount,
+      accountType: AccountType.PAYMENT,
+      startTransactionDate: dateRange[0].format("YYYY-MM-DDTHH:mm:ss"),
+      endTransactionDate: dateRange[1].format("YYYY-MM-DDTHH:mm:ss"),
+    };
+
+    try {
+      setLoading(true);
+      const response = await generatePersonalAccountReport(requestData);
+  
+      if (response instanceof Blob) {
+        if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+  
+        const pdfObjectUrl = URL.createObjectURL(response);
+        setPdfUrl(pdfObjectUrl);
+        setIsModalVisible(true); // Hiển thị modal khi có PDF
+      } else {
+        message.error("Lỗi khi tạo báo cáo.");
+      }
+    } catch (error) {
+      message.error("Lỗi khi tải báo cáo.");
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleSubmit = () => {
-    dispatch({
-      type: "accountReport/fetch",
-      payload: {
-        customerId,
-        account: selectedAccount.account,
-        accountType: selectedAccount.type, // Gửi loại tài khoản lên server
-        startTransactionDate: dateRange[0].toISOString(),
-        endTransactionDate: dateRange[1].toISOString(),
-      },
-    });
   };
 
   return (
-    <Card title="Báo cáo hoạt động tài khoản">
-      <Form form={form} layout="vertical" onFinish={handleSubmit}>
-        <Form.Item label="Số tài khoản">
-          <Select
-            value={selectedAccount.account}
-            onChange={handleAccountChange}
-            style={{ width: "100%" }}
-          >
-            {accountsList.map((acc) => (
-              <Option key={acc.account} value={acc.account}>
-                {`${acc.account} (${acc.type === "CURRENT" ? "Thanh toán" : "Tiết kiệm"})`}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+    <App>
+      <Card title="Báo cáo hoạt động tài khoản">
+        <Form layout="vertical" onFinish={handleSubmit}>
+          <Form.Item label="Số tài khoản">
+            <Select value={selectedAccount} onChange={setSelectedAccount} style={{ width: "100%" }}>
+              {accountsList.map((acc) => (
+                <Option key={acc.account} value={acc.account}>
+                  {`${acc.account} (${acc.type})`}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
-        <Form.Item label="Khoảng thời gian giao dịch">
-          <Select
-            value={selectedDateOption}
-            onChange={handleDateChange}
-            style={{ width: "100%", marginBottom: "10px" }}
-          >
-            <Option value="today">Hôm nay</Option>
-            <Option value="week">1 tuần trước</Option>
-            <Option value="month">1 tháng trước</Option>
-          </Select>
-          <RangePicker value={dateRange} onChange={handleDatePickerChange} />
-        </Form.Item>
+          <Form.Item label="Khoảng thời gian giao dịch">
+            <Space style={{ marginBottom: 10 }}>
+              <Button onClick={() => handleQuickSelect("today")}>Hôm nay</Button>
+              <Button onClick={() => handleQuickSelect("week")}>1 Tuần</Button>
+              <Button onClick={() => handleQuickSelect("month")}>1 Tháng</Button>
+              <Button onClick={() => handleQuickSelect("threeMonths")}>3 Tháng</Button>
+            </Space>
 
-        <Form.Item>
-          <Button type="primary" htmlType="submit">
-            Lấy báo cáo
-          </Button>
-        </Form.Item>
-      </Form>
-    </Card>
+            <RangePicker
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs])}
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              {loading ? "Đang tải..." : "Lấy báo cáo"}
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+
+      {/* Modal hiển thị PDF */}
+      <Modal
+        title="Xem trước báo cáo"
+        open={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
+        width={800}
+      >
+        {pdfUrl && <iframe src={pdfUrl} width="100%" height="500px" style={{ border: "none" }} />}
+      </Modal>
+    </App>
   );
 };
 

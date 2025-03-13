@@ -1,36 +1,28 @@
-import { request } from '@umijs/max';
+import request from 'umi-request';
 import {
   PersonalAccountRequest,
   PersonalLoanRequest,
   AccountsFilterRequest,
   LoansFilterRequest,
   TransactionsFilterRequest,
-} from './types'; // Import các type đã định nghĩa
+} from './types';
 
-const API_BASE_URL = 'http://localhost:8080/report/api/v1/reports';
+const API_BASE_URL = 'http://localhost:8080/report/api/v1';
 
-// Hàm chung gọi API báo cáo
-async function fetchReport<T>(endpoint: string, data: T): Promise<Blob> {
-  return request(`${API_BASE_URL}/${endpoint}`, {
-    method: 'POST',
-    data,
-    headers: { 'Content-Type': 'application/json' },
-    responseType: 'blob',
-  });
-}
+export const generatePersonalAccountReportTest = (data: PersonalAccountRequest) =>
+  request(`${API_BASE_URL}/test-pdf`, { method: "POST", responseType: "blob", data });
 
-// Gọi API báo cáo theo loại tương ứng
-export const getPersonalAccountReport = (data: PersonalAccountRequest) =>
-  fetchReport('personal-account', data);
+export const generatePersonalAccountReport = (data: PersonalAccountRequest) =>
+  request(`${API_BASE_URL}/account/pdf`, { method: "POST", responseType: "blob", data });
 
-export const getPersonalLoanReport = (data: PersonalLoanRequest) =>
-  fetchReport('personal-loan', data);
+export const generatePersonalLoanReport = (data: PersonalLoanRequest) =>
+  request(`${API_BASE_URL}/loan/pdf`, { method: "POST", responseType: "blob", data });
 
-export const getAccountsListReport = (data: AccountsFilterRequest) =>
-  fetchReport('accounts-list', data);
+export const generateAccountsListReport = (data: AccountsFilterRequest) =>
+  request(`${API_BASE_URL}/accounts/pdf`, { method: "POST", responseType: "blob", data });
 
-export const getLoansListReport = (data: LoansFilterRequest) =>
-  fetchReport('loans-list', data);
+export const generateLoansListReport = (data: LoansFilterRequest) =>
+  request(`${API_BASE_URL}/loans/pdf`, { method: "POST", responseType: "blob", data });
 
-export const getTransactionsListReport = (data: TransactionsFilterRequest) =>
-  fetchReport('transactions-list', data);
+export const generateTransactionsListReport = (data: TransactionsFilterRequest) =>
+  request(`${API_BASE_URL}/transactions/pdf`, { method: "POST", responseType: "blob", data });
