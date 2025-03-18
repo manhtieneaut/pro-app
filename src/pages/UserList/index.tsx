@@ -1,11 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from '@umijs/max';
 import { ProTable, ProColumns, ActionType } from '@ant-design/pro-components';
-import { Button, message, Modal, Form, Input } from 'antd';
-import { useCallback, useMemo } from 'react';
+import { Button, message, Modal, Form, Input, Card, Space, Typography } from 'antd';
 import { useAccess } from '@umijs/max';
 import { debounce } from 'lodash';
 import isEqual from 'lodash/isEqual';
+import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+
+const { Title } = Typography;
 
 interface User {
   id: string;
@@ -23,11 +25,10 @@ const UserList: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form] = Form.useForm();
   const actionRef = useRef<ActionType>();
-  const CACHE_KEY = 'users_cache';
 
   useEffect(() => {
     dispatch({ type: 'user/fetchUserList' });
-  }, [dispatch]); // ✅ Thêm dispatch vào dependency để tránh lỗi eslint
+  }, [dispatch]);
 
   const openModal = (user?: User) => {
     if (user) {
@@ -56,7 +57,7 @@ const UserList: React.FC = () => {
   const handleSearch = useCallback(
     debounce((params: any) => {
       dispatch({ type: 'user/searchUser', payload: params });
-    }, 300), // ✅ Thêm debounce để tránh gọi API liên tục
+    }, 300),
     [dispatch],
   );
 
@@ -74,47 +75,32 @@ const UserList: React.FC = () => {
         key: 'actions',
         search: false,
         render: (_, record) => (
-          <>
-            <Button type="link" onClick={() => openModal(record)}>
-              Edit
-            </Button>
-            <Button type="link" danger onClick={() => handleDeleteUser(record.id)}>
-              Delete
-            </Button>
-          </>
+          <Space>
+            <Button icon={<EditOutlined />} onClick={() => openModal(record)} />
+            <Button icon={<DeleteOutlined />} danger onClick={() => handleDeleteUser(record.id)} />
+          </Space>
         ),
       });
     }
 
     return baseColumns;
-  }, [access.canAdmin, handleDeleteUser]); // ✅ Chỉ re-create khi quyền thay đổi hoặc `handleDeleteUser` thay đổi
+  }, [access.canAdmin, handleDeleteUser]);
 
   const handleAddOrEditUser = useCallback(async () => {
     try {
       const values = await form.validateFields();
-
       if (editingUser) {
         if (isEqual(values, editingUser)) {
           message.info('Không có thay đổi nào, không gửi request!');
           return;
         }
-
-        await dispatch({
-          type: 'user/modifyUser',
-          payload: { id: editingUser.id, data: values },
-        });
-
-        dispatch({
-          type: 'user/updateUserInState',
-          payload: { id: editingUser.id, data: values },
-        });
-
+        await dispatch({ type: 'user/modifyUser', payload: { id: editingUser.id, data: values } });
+        dispatch({ type: 'user/updateUserInState', payload: { id: editingUser.id, data: values } });
         message.success('User updated successfully!');
       } else {
         await dispatch({ type: 'user/createUser', payload: values });
         message.success('User added successfully!');
       }
-
       setModalVisible(false);
       form.resetFields();
       setEditingUser(null);
@@ -123,17 +109,9 @@ const UserList: React.FC = () => {
     }
   }, [form, editingUser, dispatch]);
 
-  const reloadTable = useCallback(
-    debounce(() => {
-      sessionStorage.removeItem(CACHE_KEY);
-      dispatch({ type: 'user/fetchUserList' });
-      actionRef.current?.reload();
-    }, 1000),
-    [dispatch],
-  );
-
   return (
-    <>
+    <Card style={{ borderRadius: 10, padding: 20 }}>
+      <Title level={3}>User Management</Title>
       <ProTable<User>
         columns={columns}
         dataSource={list}
@@ -141,19 +119,14 @@ const UserList: React.FC = () => {
         actionRef={actionRef}
         search={{ filterType: 'light' }}
         pagination={{ pageSize: 5 }}
-        options={{
-          reload: () => reloadTable(), // ✅ Gọi hàm reloadTable khi nhấn reload
-          setting: true,
-        }}
         loading={loading}
         toolBarRender={() => [
-          <Button key="addUser" type="primary" onClick={() => openModal()}>
+          <Button key="addUser" type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
             Add User
           </Button>,
         ]}
         onSubmit={handleSearch}
       />
-
       <Modal
         title={editingUser ? 'Edit User' : 'Add User'}
         open={modalVisible}
@@ -163,6 +136,9 @@ const UserList: React.FC = () => {
           form.resetFields();
           setEditingUser(null);
         }}
+        centered
+        okText={editingUser ? 'Update' : 'Create'}
+        cancelText="Cancel"
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -195,7 +171,7 @@ const UserList: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </Card>
   );
 };
 

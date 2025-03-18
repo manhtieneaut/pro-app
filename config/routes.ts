@@ -1,4 +1,5 @@
 ﻿import component from '@/locales/bn-BD/component';
+import { wrap } from 'lodash';
 import route from 'mock/route';
 
 /**
@@ -48,17 +49,17 @@ export default [
       },
       {
         path: 'admin/report-account',
-        name: 'Báo cáo tài khoản',
+        name: 'Báo cáo tổng hợp tài khoản',
         component: './Report/Admin/Account',
       },
       {
         path: 'admin/report-transaction',
-        name: 'Báo cáo giao dịch',
+        name: 'Báo cáo giao dịch khách hàng',
         component: './Report/Admin/Transaction',
       },
       {
         path: 'admin/report-loan',
-        name: 'Báo cáo khoản vay',
+        name: 'Báo cáo các khoản vay',
         component: './Report/Admin/Loan',
       },
     ],
@@ -83,21 +84,20 @@ export default [
     path: '/users',
     name: 'Danh sách người dùng',
     component: './UserList',
-    wrappers: ['@/wrappers/auth'],
+    access: 'canAdmin',
   },
 
   {
-    layout: false,
-    path: '/login',
-    name: 'login',
-    component: './Login',
+    path: '/report',
+    name: 'Report',
+    component: './Report',
   },
   {
-    path: '/report/account',
-    name: 'Account Report',
-    component: './Report/account',
+    path: '/login',
+    name: 'Login',
+    component: './Login',
   },
-  
+
   {
     path: '*',
     layout: false,

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Card, Form, Input, Select, DatePicker, Button } from "antd";
-import { useDispatch } from "@umijs/max";
-import dayjs from "dayjs";
+import React from 'react';
+import { Card, Form, Input, Select, DatePicker, Button } from 'antd';
+import { useDispatch } from '@umijs/max';
+import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -22,7 +22,7 @@ const TransactionReportPage = () => {
 
   const handleSubmit = (values: FormValues) => {
     dispatch({
-      type: "transactionReport/fetch",
+      type: 'transactionReport/fetch',
       payload: {
         ...values,
         startDate: values.dateRange ? values.dateRange[0].toISOString() : null,
@@ -32,7 +32,7 @@ const TransactionReportPage = () => {
   };
 
   return (
-    <Card title="Báo cáo giao dịch">
+    <Card title="Báo cáo giao dịch - Admin">
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Form.Item name="dateRange" label="Khoảng thời gian giao dịch">
           <RangePicker showTime format="YYYY-MM-DD HH:mm:ss" />

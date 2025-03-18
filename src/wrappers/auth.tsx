@@ -3,7 +3,7 @@ import { Outlet } from '@umijs/max';
 import React from 'react';
 
 export default () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('access_token');
 
   if (!token) {
     history.push('/login');

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { Card, Form, Input, Select, DatePicker, Button, message, Modal } from "antd";
-import { generateAccountsListReport } from "@/services/report";
+import React, { useState } from 'react';
+import { Card, Form, Input, Select, DatePicker, Button, message, Modal } from 'antd';
+import { generateAccountsListReport } from '@/services/Report/api';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -15,8 +15,8 @@ const AdminAccountReportPage: React.FC = () => {
     const { dateRange, ...rest } = values;
     const requestData = {
       ...rest,
-      startAt: dateRange ? dateRange[0].format("YYYY-MM-DD") : undefined,
-      endAt: dateRange ? dateRange[1].format("YYYY-MM-DD") : undefined,
+      startAt: dateRange ? dateRange[0].format('YYYY-MM-DD') : undefined,
+      endAt: dateRange ? dateRange[1].format('YYYY-MM-DD') : undefined,
     };
 
     try {
@@ -30,10 +30,10 @@ const AdminAccountReportPage: React.FC = () => {
         setPdfUrl(pdfObjectUrl);
         setIsModalVisible(true); // Mở modal hiển thị báo cáo
       } else {
-        message.error("Lỗi khi tạo báo cáo.");
+        message.error('Lỗi khi tạo báo cáo.');
       }
     } catch (error) {
-      message.error("Lỗi khi tải báo cáo.");
+      message.error('Lỗi khi tải báo cáo.');
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ const AdminAccountReportPage: React.FC = () => {
         <Form.Item name="accountType" label="Loại tài khoản">
           <Select placeholder="Chọn loại tài khoản">
             <Option value="SAVINGS">Tiết kiệm</Option>
-            <Option value="CURRENT">Thanh toán</Option>
+            <Option value="PAYMENT">Thanh toán</Option>
           </Select>
         </Form.Item>
 
@@ -78,7 +78,7 @@ const AdminAccountReportPage: React.FC = () => {
 
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading}>
-            {loading ? "Đang tải..." : "Lấy báo cáo"}
+            {loading ? 'Đang tải...' : 'Lấy báo cáo'}
           </Button>
         </Form.Item>
       </Form>
@@ -91,7 +91,7 @@ const AdminAccountReportPage: React.FC = () => {
         footer={null}
         width={800}
       >
-        {pdfUrl && <iframe src={pdfUrl} width="100%" height="500px" style={{ border: "none" }} />}
+        {pdfUrl && <iframe src={pdfUrl} width="100%" height="500px" style={{ border: 'none' }} />}
       </Modal>
     </Card>
   );

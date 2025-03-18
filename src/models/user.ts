@@ -1,5 +1,5 @@
 import { Effect, Reducer } from '@umijs/max';
-import { fetchUsers, addUser, updateUser, deleteUser, searchUsers } from '@/services/user';
+import { fetchUsers, addUser, updateUser, deleteUser, searchUsers } from '@/services/User/api';
 
 /**
  * Định nghĩa giao diện dữ liệu của một người dùng
